@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f3f2ef">
+<title>Dockside Inspection Dashboard</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f3f2ef; --surface:#fcfcfb; --line:#e4e2dc; --grid:#ecebe6;
+  --ink:#0b0b0b; --ink2:#52514e; --mute:#8a8984;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e78ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+  --focus:#2a78d6;
+}
+:root{--s5:#e87ba4}
+@media (prefers-color-scheme:dark){
+  :root{
+    color-scheme:dark;
+    --bg:#121211; --surface:#1a1a19; --line:#2e2d2b; --grid:#272624;
+    --ink:#f0efec; --ink2:#c3c2b7; --mute:#8d8c85;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+    --focus:#3987e5;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1480px;margin:0 auto;padding:16px 20px 48px}
+h1{font-size:20px;margin:0 0 2px}
+.sub{color:var(--ink2);font-size:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card h2{font-size:14px;margin:0 0 2px}
+.card .def{color:var(--ink2);font-size:12px;margin:0 0 10px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.filters{position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.fld{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--ink2)}
+.fld>span{text-transform:uppercase;letter-spacing:.04em}
+button,input,select{font:inherit;color:var(--ink)}
+.btn,.ms-btn,input[type=date],select{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 9px;min-height:32px}
+.btn{cursor:pointer}
+.btn:hover,.ms-btn:hover{border-color:var(--mute)}
+.btn.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.ms{position:relative}
+.ms-btn{min-width:190px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+.ms-panel{position:absolute;top:36px;left:0;width:300px;max-height:380px;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:none;flex-direction:column;z-index:30}
+.ms.open .ms-panel{display:flex}
+.ms-panel input[type=search]{margin:8px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.ms-list{overflow:auto;padding:0 8px 6px}
+.ms-list label{display:flex;gap:8px;align-items:center;padding:3px 2px;font-size:13px;cursor:pointer}
+.ms-list label span.c{margin-left:auto;color:var(--mute);font-size:11px}
+.ms-foot{display:flex;gap:8px;padding:6px 8px;border-top:1px solid var(--line)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:4px 0 4px}
+.kcap{color:var(--mute);font-size:11px;margin:0 0 12px}
+.kpi .yl{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:2px}
+.kpi .yl span{color:var(--ink2);font-size:12px}
+.kpi .yl b{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.kpi .yl em{font-style:normal;color:var(--mute);font-size:11px;min-width:42px;text-align:right}
+.kpi .v{font-size:24px;font-weight:600;letter-spacing:-.01em}
+.kpi .l{font-size:11px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+.kpi .n{font-size:11px;color:var(--mute)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:1100px){.grid2{grid-template-columns:1fr}}
+.phead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin:4px 0 8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.legend .off{opacity:.35}
+.scroll{max-height:470px;overflow:auto;padding-right:4px}
+.row{display:grid;grid-template-columns:140px 1fr var(--valw,112px);gap:8px;align-items:center;height:22px;font-size:12px}
+.row .lab{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .val{color:var(--ink2);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.stack{display:flex;gap:2px;height:12px}
+.stack i{display:block;height:100%;min-width:1px;border-radius:2px}
+.stack i:hover{filter:brightness(1.12);outline:1px solid var(--ink)}
+.track{position:relative;height:22px}
+.track:before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid var(--grid)}
+.track b{position:absolute;top:4px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--s1);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--s1)}
+.track .ref{position:absolute;top:0;bottom:0;border-left:1px dashed var(--mute)}
+.axis{position:relative;height:16px;margin:0 calc(var(--valw,112px) + 12px) 2px 148px;font-size:11px;color:var(--mute)}
+.axis span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.row.y{grid-template-columns:140px 38px 1fr var(--valw,112px)}
+.row.first{margin-top:5px}
+.row .yr{color:var(--ink2);font-size:11px;font-variant-numeric:tabular-nums}
+.sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 3px 0 8px}
+.empty{color:var(--mute);padding:24px 0;text-align:center}
+.seg{display:inline-flex;gap:0}
+.seg .btn{border-radius:0;margin-left:-1px}
+.seg .btn:first-child{border-radius:6px 0 0 6px;margin-left:0}
+.seg .btn:last-child{border-radius:0 6px 6px 0}
+svg text{fill:var(--ink2);font-size:11px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tbl-wrap{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{padding:5px 9px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;vertical-align:top}
+th{position:sticky;top:0;background:var(--surface);cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--line)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.txt{white-space:pre-line;min-width:160px;max-width:300px;max-height:64px;overflow:hidden}
+tr:hover td{background:var(--bg)}
+.tfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;font-size:12px;color:var(--ink2);flex-wrap:wrap}
+@media(max-width:700px){.filters{position:static}.ms-panel{width:min(300px,86vw)}}
+#tip{position:fixed;pointer-events:none;z-index:99;background:var(--ink);color:var(--surface);padding:7px 10px;border-radius:6px;font-size:12px;line-height:1.35;max-width:320px;display:none;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#tip b{font-weight:600}
+details{margin-top:12px;font-size:12px;color:var(--ink2)}
+details summary{cursor:pointer;color:var(--ink)}
+details li{margin:3px 0}
+.chk{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink2);min-height:32px}
+body.locked .wrap{display:none}
+#lock{display:none;min-height:100vh;align-items:center;justify-content:center;padding:20px}
+body.locked #lock{display:flex}
+#lock form{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:12px}
+#lock h1{font-size:18px;margin:0}
+#lock input[type=password]{padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:15px}
+#lock .err{color:var(--s8);font-size:13px;min-height:18px}
+#lock label{font-size:12px;color:var(--ink2);display:flex;gap:6px;align-items:center}
+.top{align-items:flex-start}
+</style>
+</head>
+<body>
+<div id="lock"><form id="lockForm" autocomplete="off">
+  <h1>Dockside Inspection Dashboard</h1>
+  <div class="sub">Enter the team passphrase to open the data.</div>
+  <input type="password" id="pw" placeholder="Passphrase" aria-label="Passphrase" autocomplete="current-password" required>
+  <label><input type="checkbox" id="remember"> Keep me unlocked on this device</label>
+  <button class="btn on" type="submit" id="unlockBtn">Unlock</button>
+  <div class="err" id="lockErr" role="alert"></div>
+</form></div>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Dockside Inspection Dashboard</h1>
+      <div class="sub" id="meta"></div>
+    </div>
+    <button class="btn" id="lockBtn" type="button">Lock</button>
+  </div>
+
+  <div class="filters" id="filters">
+    <div class="fld"><span>Crop year</span><div class="ms" id="msC"></div></div>
+    <div class="fld"><span>Variety</span><div class="ms" id="msV"></div></div>
+    <div class="fld"><span>Grower</span><div class="ms" id="msG"></div></div>
+    <div class="fld"><span>Potato origin</span><div class="ms" id="msO"></div></div>
+    <div class="fld"><span>Delivery date from</span><input type="date" id="dFrom"></div>
+    <div class="fld"><span>to</span><input type="date" id="dTo"></div>
+    <div class="fld"><span>Quick range (from latest delivery)</span>
+      <div class="seg" id="presets">
+        <button class="btn" data-p="all">All</button><button class="btn" data-p="30">30 d</button><button class="btn" data-p="90">90 d</button><button class="btn" data-p="365">12 mo</button>
+      </div></div>
+    <label class="chk"><input type="checkbox" id="excl"> Exclude flagged records from visuals</label>
+    <button class="btn" id="reset">Reset slicers</button>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+  <div class="kcap" id="kcap"></div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="phead"><div><h2>Size distribution by potato origin</h2>
+        <p class="def">Share of sorted size lbs (Bakers + Cartons + Non Size A + 4oz 2s + Undersize = 100%). Weight-weighted across samples.</p></div></div>
+      <div class="legend" id="lgSize"></div>
+      <div class="scroll" id="pSize"></div>
+    </div>
+    <div class="card">
+      <div class="phead"><div><h2>Specific gravity by potato origin</h2>
+        <p class="def">Weighted by Total Bag Weight. Dashed line = 1.080 reference (below 1.080 is low). One dot per crop year when several are selected.</p></div></div>
+      <div class="legend" id="lgSG"></div>
+      <div class="axis" id="sgAxis"></div>
+      <div class="scroll" id="pSG"></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="phead"><div><h2>Green, rot and internal by potato origin</h2>
+        <p class="def">Lbs as % of Total Bag Weight. Weight-weighted across samples.</p></div></div>
+      <div class="legend" id="lgGRI"></div>
+      <div class="scroll" id="pGRI"></div>
+    </div>
+    <div class="card">
+      <div class="phead"><div><h2>Top defects (from Top Defects text)</h2>
+        <p class="def" id="defDef"></p></div></div>
+      <div class="scroll" id="pDef"></div>
+    </div>
+  </div>
+
+  <div class="card" id="mixCard" style="margin-bottom:12px;display:none">
+    <h2>Varieties in the Mixed cellar bays</h2>
+    <p class="def">Shown when Mixed is selected, or when a selected origin has Mixed samples. Share = loaded cellar volume (Adjusted Volume CWT) of each variety in that bay for the grower. A dockside sample is not tied to one cellar section, so this tells you what is in the bay, not what is in each sample.</p>
+    <div class="tbl-wrap" style="max-height:320px"><table id="mixTbl"></table></div>
+  </div>
+
+  <div class="card">
+    <div class="tabs" id="tabs"></div>
+    <div class="def" id="tblDef"></div>
+    <div class="tbl-wrap"><table id="tbl"></table></div>
+    <div class="tfoot">
+      <div id="tblInfo"></div>
+      <div style="display:flex;gap:8px"><button class="btn" id="prev">‹ Prev</button><button class="btn" id="next">Next ›</button><button class="btn" id="csv">Export CSV (all rows in this table)</button></div>
+    </div>
+  </div>
+
+  <details class="card" open>
+    <summary>Definitions, rules and notes</summary>
+    <ul id="notes"></ul>
+  </details>
+</div>
+<div id="tip"></div>
+<div id="toast" style="display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:9px 14px;border-radius:8px;font-size:13px;z-index:100;max-width:90vw"></div>
+
+<script>
+"use strict";
+window.__boot=function(D){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf0=new Intl.NumberFormat('en-US',{maximumFractionDigits:0});
+const nf1=new Intl.NumberFormat('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});
+const f1=x=>x==null?'–':nf1.format(x), f0=x=>x==null?'–':nf0.format(x), f3=x=>x==null?'–':x.toFixed(3);
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const SG_REF=1.080, SG_MIN_OK=1.030, SG_MAX_OK=1.120, LBS_BAG_MAX=60;
+
+/* ---------- load ---------- */
+const ci={}; D.cols.forEach((c,i)=>ci[c]=i);
+const recs=D.rows.map((r,k)=>({k,r,
+  id:r[ci['ID']],date:r[ci['Delivery Date']],lot:r[ci['Lot']],cy:(String(r[ci['Lot']]||'').match(/^MFP-(\d\d)-/)||[,null])[1]?'20'+String(r[ci['Lot']]).match(/^MFP-(\d\d)-/)[1]:'(no lot)',grower:r[ci['Grower']],
+  origin:r[ci['Potato Origin']]||'(blank)',bags:+r[ci['Number of Bags']]||0,tot:+r[ci['Total Bag Weight lbs']]||0,sg:r[ci['Specific Gravity']],
+  bak:+r[ci['Bakers lbs']]||0,car:+r[ci['Cartons lbs']]||0,nsa:+r[ci['Non Size A lbs']]||0,unacc:(D.unacc&&D.unacc[k])||0,vnote:(D.var&&D.var[k]&&D.var[k][3])||'',mix:(D.var&&D.var[k]&&D.var[k][4])||[],
+  oz2:+r[ci['4oz 2s lbs']]||0,grn:+r[ci['Green lbs']]||0,rot:+r[ci['Rot lbs']]||0,itn:+r[ci['Internal lbs']]||0,und:+r[ci['Undersize lbs']]||0,
+  def:r[ci['Top Defects']],variety:(D.var&&D.var[k])?D.var[k][0]:'Unknown',vdetail:(D.var&&D.var[k])?D.var[k][1]:'',flags:[],defs:[],unparsed:[]}));
+const GROWERS=[...new Set(recs.map(r=>r.grower))].sort((a,b)=>a.localeCompare(b));
+const gcol=g=>{const i=GROWERS.indexOf(g);return i<8?`var(--s${i+1})`:'var(--mute)'};
+const CUR=[...new Set(recs.map(r=>r.cy))].filter(x=>/^\d{4}$/.test(x)).sort().pop();
+const DATES=recs.map(r=>r.date).sort(); const DMIN=DATES[0], DMAX=DATES[DATES.length-1];
+
+/* ---------- defect parsing (spelling variants merged; nothing else is changed) ---------- */
+const DEF_MAP={'hallow heart':'Hollow Heart','hollw heart':'Hollow Heart','hollow heart':'Hollow Heart','rhizoconia':'Rhizoctonia','thizoctonia':'Rhizoctonia','rhizoctonia':'Rhizoctonia',
+ 'bruises':'Bruise','pressure bruise':'Pressure Bruise','misshape':'Misshapen','shape':'Misshapen','letnicels':'Lenticels','silver scurg':'Silver Scurf','silver scurf':'Silver Scurf',
+ 'surface crack':'Surface Cracks','spouts':'Sprouts','sprout':'Sprouts','heart black':'Black Heart','virus':'Virus','green':'Green'};
+const titleCase=s=>s.replace(/\b([a-z])/g,m=>m.toUpperCase());
+function canon(raw){const k=raw.trim().replace(/\s+/g,' ').toLowerCase();return DEF_MAP[k]||titleCase(k)}
+const RX1=/^\s*\d+\.\s*(.+?)\s*:\s*([\d.]+)\s*%?\s*$/, RX2=/^\s*\d+\.\s*(.+?)\s+([\d.]+)\s*%?\s*$/;
+for(const r of recs){
+  if(!r.def) continue;
+  for(const line of String(r.def).split(/\r?\n/)){
+    if(!line.trim()) continue;
+    const m=line.match(RX1)||line.match(RX2);
+    if(m && isFinite(+m[2])) r.defs.push({raw:m[1].trim(),name:canon(m[1]),pct:+m[2]}); else r.unparsed.push(line.trim());
+  }
+}
+
+/* ---------- data checks (flags only; nothing is changed or removed) ---------- */
+const dupKey=r=>JSON.stringify(r.r.map((v,i)=>i===ci['ID']?null:v));
+const dupGroups=new Map(); recs.forEach(r=>{const k=dupKey(r);(dupGroups.get(k)||dupGroups.set(k,[]).get(k)).push(r)});
+for(const r of recs){
+  if(r.sg==null||r.sg<SG_MIN_OK||r.sg>SG_MAX_OK) r.flags.push({c:'Specific gravity outside '+SG_MIN_OK.toFixed(3)+'–'+SG_MAX_OK.toFixed(3),d:'SG = '+r.sg});
+  if(r.tot>0&&r.unacc/r.tot>0.10) r.flags.push({c:'Unaccounted weight over 10% of Total Bag Weight',d:f1(r.unacc)+' lbs ('+f1(100*r.unacc/r.tot)+'%) of the sample is not in any weight column (likely tare and grader error)'});
+  if(r.origin==='(blank)') r.flags.push({c:'Potato Origin is blank',d:''});
+  if(r.bags>0&&r.tot/r.bags>LBS_BAG_MAX) r.flags.push({c:'Over '+LBS_BAG_MAX+' lbs per bag',d:r.bags+' bag(s), '+r.tot+' lbs. Bag count likely entered wrong (your note); weights used as recorded'});
+  const g=dupGroups.get(dupKey(r)); if(g.length>1) r.flags.push({c:'Identical to another record (all columns except ID)',d:'IDs: '+g.map(x=>x.id).join(', ')});
+  for(const c of (D.corrections||[])) if(String(c.id)===String(r.id)&&c.used!=='not applied') r.flags.push({c:'Value replaced per your instruction ('+c.field+')',d:c.original+' → '+c.used});
+  if(r.vnote) r.flags.push({c:'Cellar bay and grower do not agree',d:r.vnote});
+  if(r.unparsed.length) r.flags.push({c:'Top Defects line could not be read as "name: %"',d:r.unparsed.join(' | ')});
+}
+
+/* ---------- state ---------- */
+const S={crops:new Set([CUR]),vars:new Set(),growers:new Set(),origins:new Set(),from:'',to:'',excl:false,metric:'samples',tab:'delivery',page:0,sortCol:null,sortDir:1};
+let fRows=[], vRows=[], tblCache=null;
+function pass(r,skip){
+  if(skip!=='c'&&S.crops.size&&!S.crops.has(r.cy)) return false;
+  if(skip!=='v'&&S.vars.size&&!S.vars.has(r.variety)) return false;
+  if(skip!=='g'&&S.growers.size&&!S.growers.has(r.grower)) return false;
+  if(skip!=='o'&&S.origins.size&&!S.origins.has(r.origin)) return false;
+  if(S.from&&r.date<S.from) return false; if(S.to&&r.date>S.to) return false; return true;
+}
+function agg(rs){
+  const a={n:0,bags:0,tot:0,sgw:0,bak:0,car:0,nsa:0,oz2:0,grn:0,rot:0,itn:0,und:0,sgmin:Infinity,sgmax:-Infinity,growers:new Set(),origins:new Set(),sgtot:0};
+  for(const r of rs){a.n++;a.bags+=r.bags;a.tot+=r.tot;if(r.sg!=null){a.sgw+=r.sg*r.tot;a.sgtot+=r.tot;a.sgmin=Math.min(a.sgmin,r.sg);a.sgmax=Math.max(a.sgmax,r.sg)}
+    a.bak+=r.bak;a.car+=r.car;a.nsa+=r.nsa;a.oz2+=r.oz2;a.grn+=r.grn;a.rot+=r.rot;a.itn+=r.itn;a.und+=r.und;a.growers.add(r.grower);a.origins.add(r.origin)}
+  a.sg=a.sgtot?a.sgw/a.sgtot:null; a.size5=a.bak+a.car+a.nsa+a.oz2+a.und; return a;
+}
+function groupBy(rs,key){const m=new Map();for(const r of rs){const k=typeof key==='function'?key(r):r[key];(m.get(k)||m.set(k,[]).get(k)).push(r)}return m}
+
+/* ---------- tooltip ---------- */
+const tip=$('#tip');
+document.addEventListener('mousemove',e=>{
+  const t=e.target.closest&&e.target.closest('[data-tip]');
+  if(!t){tip.style.display='none';return}
+  tip.innerHTML=t.getAttribute('data-tip'); tip.style.display='block';
+  const w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+14,y=e.clientY+14;
+  if(x+w>innerWidth-8)x=e.clientX-w-14; if(y+h>innerHeight-8)y=e.clientY-h-14; tip.style.left=Math.max(4,x)+'px';tip.style.top=Math.max(4,y)+'px';
+});
+
+/* ---------- slicers ---------- */
+function buildMS(el,label,set,optsFn,searchable,emptyLabel,clearText){
+  emptyLabel=emptyLabel||'All'; clearText=clearText||'Clear (all)';
+  el.innerHTML=`<button class="ms-btn" type="button"><span class="t"></span><span>▾</span></button>
+   <div class="ms-panel">${searchable?'<input type="search" placeholder="Search…" aria-label="Search '+label+'">':''}<div class="ms-list"></div>
+   <div class="ms-foot"><button class="btn" type="button" data-a="clear">${clearText}</button><button class="btn" type="button" data-a="close">Close</button></div></div>`;
+  const btn=el.querySelector('.ms-btn'), list=el.querySelector('.ms-list'), search=el.querySelector('input');
+  btn.onclick=()=>{document.querySelectorAll('.ms.open').forEach(x=>{if(x!==el)x.classList.remove('open')});el.classList.toggle('open');if(el.classList.contains('open')&&search)search.focus()};
+  el.querySelector('[data-a=clear]').onclick=()=>{set.clear();update()};
+  el.querySelector('[data-a=close]').onclick=()=>el.classList.remove('open');
+  if(search)search.oninput=()=>draw();
+  function draw(){
+    const q=search?search.value.trim().toLowerCase():'';
+    const opts=optsFn().filter(o=>!q||o.name.toLowerCase().includes(q));
+    list.innerHTML=opts.map(o=>`<label><input type="checkbox" value="${esc(o.name)}" ${set.has(o.name)?'checked':''}>${o.color?`<i style="width:10px;height:10px;border-radius:2px;background:${o.color}"></i>`:''}<span>${esc(o.name)}</span><span class="c">${o.n}</span></label>`).join('')||'<div class="empty">No matches</div>';
+    list.querySelectorAll('input').forEach(i=>i.onchange=()=>{i.checked?set.add(i.value):set.delete(i.value);update()});
+    btn.querySelector('.t').textContent=label+': '+(set.size?(set.size===1?[...set][0]:set.size+' selected'):emptyLabel);
+  }
+  el._draw=draw; draw();
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.ms'))document.querySelectorAll('.ms.open').forEach(x=>x.classList.remove('open'))});
+function optsFor(key,skip){
+  const m=new Map(); for(const r of recs) if(pass(r,skip)) m.set(r[key],(m.get(r[key])||0)+1);
+  const set=key==='cy'?S.crops:key==='variety'?S.vars:key==='grower'?S.growers:S.origins; for(const s of set) if(!m.has(s)) m.set(s,0);
+  const VO=['Norkotah Heavy','Norkotah Sand','Reveille','Reveille Heavy','Reveille Sand','Teton','Pacific','Other','Mixed','Unknown'];
+  if(key==='variety') for(const v of VO) if(!m.has(v)&&!set.has(v)) {} 
+  const ord=key==='variety'?((a,b)=>VO.indexOf(a[0])-VO.indexOf(b[0])):((a,b)=>a[0].localeCompare(b[0],undefined,{sensitivity:'base'}));
+  return [...m].filter(([n,c])=>key!=='variety'||c>0||set.has(n)).sort(ord).map(([name,n])=>({name,n,color:null}));
+}
+
+/* ---------- main update ---------- */
+function update(){
+  if(!S.crops.size) S.crops.add(CUR);
+  fRows=recs.filter(r=>pass(r)); vRows=S.excl?fRows.filter(r=>!r.flags.length):fRows; tblCache=null;
+  $('#msC')._draw(); $('#msV')._draw(); $('#msG')._draw(); $('#msO')._draw();
+  document.querySelectorAll('#presets .btn').forEach(b=>b.classList.remove('on'));
+  renderKPIs(); renderMix(); renderSize(); renderSG(); renderGRI(); renderDefects(); renderTable();
+}
+function renderKPIs(){
+  const yrs=[...S.crops].sort(), by=groupBy(vRows,'cy');
+  const P=(a,k)=>a.size5?100*a[k]/a.size5:null;
+  const defs=[['Specific gravity',a=>f3(a.sg),'weighted by lbs'],['Bakers',a=>{const p=P(a,'bak');return p==null?'–':f1(p)+'%'},'% of size lbs'],['Cartons',a=>{const p=P(a,'car');return p==null?'–':f1(p)+'%'},'% of size lbs'],
+    ['Non Size A',a=>{const p=P(a,'nsa');return p==null?'–':f1(p)+'%'},'% of size lbs'],['4oz 2s',a=>{const p=P(a,'oz2');return p==null?'–':f1(p)+'%'},'% of size lbs'],['Undersize',a=>{const p=P(a,'und');return p==null?'–':f1(p)+'%'},'% of size lbs']];
+  const aggs=yrs.map(y=>[y,agg(by.get(y)||[])]);
+  $('#kpis').innerHTML=defs.map(([l,fn,sub])=>`<div class="card kpi"><div class="l">${l}</div>`+
+    (aggs.length===1?`<div class="v">${fn(aggs[0][1])}</div><div class="n">Crop year ${aggs[0][0]} · n ${aggs[0][1].n} · ${sub}</div>`
+     :aggs.map(([y,a])=>`<div class="yl"><span>${y}</span><b>${fn(a)}</b><em>n ${a.n}</em></div>`).join('')+`<div class="n">${sub}</div>`)+'</div>').join('');
+  const a=agg(vRows), fl=fRows.filter(r=>r.flags.length).length;
+  $('#kcap').textContent=`In view: ${f0(a.n)} samples · ${f0(a.tot)} lbs · ${f0([...a.origins].filter(o=>o!=='(blank)').length)} origins · ${fl} flagged records in the slicers (see Data checks). Size % are shares of Bakers + Cartons + Non Size A + 4oz 2s + Undersize lbs, pooled across samples.`;
+  $('#meta').textContent=`Source: ${D.source} · ${recs.length} records · deliveries ${DMIN} to ${DMAX} · built ${D.built}`;
+}
+
+/* ---------- variety mix helpers ---------- */
+function mixText(mix){const t=mix.reduce((a,m)=>a+m[1],0);return mix.map(m=>t>0?`${m[0]} ${Math.round(100*m[1]/t)}%`:m[0]).join(' · ')}
+function varTip(rs){
+  const g=[...new Set(rs.map(r=>r.variety))]; let t='<br>Variety: '+esc(g.join(', '));
+  const seen=new Map(); for(const r of rs) if(r.variety==='Mixed'&&r.mix.length){const k=r.cy+': '+mixText(r.mix); seen.set(k,1)}
+  for(const k of seen.keys()) t+='<br>Mix (bay volume) '+esc(k);
+  return t;
+}
+function renderMix(){
+  const card=$('#mixCard'), ms=vRows.filter(r=>r.variety==='Mixed');
+  const show=ms.length&&(S.vars.has('Mixed')||S.origins.size>0);
+  card.style.display=show?'':'none'; if(!show) return;
+  const g=groupBy(ms,r=>r.origin+'\u0000'+r.cy+'\u0000'+r.grower+'\u0000'+mixText(r.mix));
+  const rows=[...g].map(([k,rs])=>{const [o,cy,gr,mt]=k.split('\u0000');return {o,cy,gr,mt,n:rs.length,cwt:rs[0].mix.reduce((a,m)=>a+m[1],0)}}).sort((a,b)=>a.o.localeCompare(b.o,undefined,{sensitivity:'base'})||a.cy.localeCompare(b.cy));
+  $('#mixTbl').innerHTML='<thead><tr><th>Potato Origin</th><th>Crop Year</th><th>Grower</th><th class="num">Samples</th><th>Varieties in the mix (share of bay volume)</th><th class="num">Bay volume CWT</th></tr></thead><tbody>'+
+   rows.map(r=>`<tr><td>${esc(r.o)}</td><td>${r.cy}</td><td>${esc(r.gr)}</td><td class="num">${r.n}</td><td>${esc(r.mt)}</td><td class="num">${f0(r.cwt)}</td></tr>`).join('')+'</tbody>';
+}
+
+/* ---------- origin panels ---------- */
+function originRows(){return [...groupBy(vRows,'origin')].map(([name,rs])=>({name,a:agg(rs),rs}))}
+const az=(x,y)=>x.name.localeCompare(y.name,undefined,{sensitivity:'base'});
+const SIZE=[['bak','Bakers','--s1'],['car','Cartons','--s2'],['nsa','Non Size A','--s3'],['oz2','4oz 2s','--s4'],['und','Undersize','--s5']];
+function yearParts(o,yrs,ok){return yrs.length>1?yrs.map(y=>{const rs=o.rs.filter(r=>r.cy===y);return {y,rs,a:agg(rs)}}).filter(d=>ok(d.a)):(ok(o.a)?[{y:null,rs:o.rs,a:o.a}]:[])}
+function rowHtml(name,d,i,multi,bar,val){return `<div class="row ${multi?'y':''} ${multi&&i===0?'first':''}"><div class="lab" title="${esc(name)}">${i===0?esc(name):''}</div>${multi?`<div class="yr">${d.y}</div>`:''}${bar}<div class="val">${val}</div></div>`}
+function renderSize(){
+  $('#lgSize').innerHTML=SIZE.map(([k,n,c])=>`<span><i style="background:var(${c})"></i>${n}</span>`).join('');
+  const yrs=[...S.crops].sort(), multi=yrs.length>1; let html='';
+  for(const o of originRows().sort(az)){
+    yearParts(o,yrs,a=>a.size5>0).forEach((d,i)=>{const a=d.a, yt=d.y?` · crop year ${d.y}`:'';
+      const segs=SIZE.map(([k,n,c])=>{const p=100*a[k]/a.size5;return p>0?`<i style="width:${p}%;background:var(${c})" data-tip="<b>${esc(o.name)}${yt}</b><br>${n}: ${f1(p)}% of size lbs<br>${f1(a[k])} lbs of ${f1(a.size5)} sorted lbs${varTip(d.rs)}"></i>`:''}).join('');
+      html+=rowHtml(o.name,d,i,multi,`<div class="stack">${segs}</div>`,`n ${a.n} · ${f0(a.tot)} lb`)});
+  }
+  $('#pSize').innerHTML=html||'<div class="empty">No data for the current slicers.</div>';
+}
+const ALLCY=[...new Set(recs.map(r=>r.cy))].sort();
+const ycol=y=>{const i=ALLCY.indexOf(y);return i>=0&&i<8?`var(--s${i+1})`:'var(--mute)'};
+function renderSG(){
+  const yrs=[...S.crops].sort(), multi=yrs.length>1, valw=multi?(40+yrs.length*64)+'px':'112px';
+  $('#lgSG').innerHTML=yrs.map(y=>`<span><i style="background:${ycol(y)};border-radius:50%"></i>Crop year ${y}</span>`).join('');
+  $('#pSG').style.setProperty('--valw',valw); $('#sgAxis').style.setProperty('--valw',valw);
+  const rows=originRows().filter(o=>o.a.sg!=null).sort(az);
+  rows.forEach(o=>{o.by=yrs.map(y=>({y,a:agg(o.rs.filter(r=>r.cy===y))})).filter(d=>d.a.sg!=null)});
+  if(!rows.length){$('#pSG').innerHTML='<div class="empty">No data for the current slicers.</div>';$('#sgAxis').innerHTML='';return}
+  const all=rows.flatMap(o=>o.by.map(d=>d.a.sg));
+  let lo=Math.min(SG_REF,...all)-0.002, hi=Math.max(SG_REF,...all)+0.002;
+  lo=Math.floor(lo/0.005)*0.005; hi=Math.ceil(hi/0.005)*0.005; const pos=v=>100*(v-lo)/(hi-lo);
+  $('#sgAxis').innerHTML=`<span style="left:0;transform:none">${f3(lo)}</span><span style="left:${pos(SG_REF)}%">${f3(SG_REF)}</span><span style="left:100%;transform:translateX(-100%)">${f3(hi)}</span>`;
+  const sz=multi?10:14;
+  $('#pSG').innerHTML=rows.map(o=>{
+    const tipFor=d=>`<b>${esc(o.name)} · crop year ${d.y}</b><br>Weighted SG: ${f3(d.a.sg)}<br>Sample range: ${f3(d.a.sgmin)} – ${f3(d.a.sgmax)}<br>${d.a.n} sample(s), ${f0(d.a.tot)} lbs`;
+    const rowTip=`<b>${esc(o.name)}</b>`+o.by.map(d=>`<br>${d.y}: ${f3(d.a.sg)} · ${d.a.n} sample(s), ${f0(d.a.tot)} lbs · range ${f3(d.a.sgmin)}–${f3(d.a.sgmax)}`).join('')+varTip(o.rs);
+    const dots=o.by.map(d=>{const yi=yrs.indexOf(d.y), top=multi&&yrs.length>1?Math.round((22-sz)*yi/(yrs.length-1)):4, c=ycol(d.y);
+      return `<b data-tip="${esc(tipFor(d)+varTip(o.rs.filter(r=>r.cy===d.y)))}" style="left:${pos(d.a.sg)}%;top:${top}px;width:${sz}px;height:${sz}px;margin-left:-${sz/2}px;background:${c};box-shadow:0 0 0 1px ${c}"></b>`}).join('');
+    const val=multi?o.by.map(d=>`<i class="sw" style="background:${ycol(d.y)}"></i>${f3(d.a.sg)}`).join(''):`${f3(o.by[0].a.sg)} · n ${o.by[0].a.n}`;
+    return `<div class="row" data-tip="${esc(rowTip)}"><div class="lab" title="${esc(o.name)}">${esc(o.name)}</div><div class="track"><span class="ref" style="left:${pos(SG_REF)}%"></span>${dots}</div><div class="val">${val}</div></div>`}).join('');
+}
+const GRI=[['grn','Green','--s6'],['itn','Internal','--s7'],['rot','Rot','--s8']];
+function renderGRI(){
+  $('#lgGRI').innerHTML=GRI.map(([k,n,c])=>`<span><i style="background:var(${c})"></i>${n}</span>`).join('');
+  const yrs=[...S.crops].sort(), multi=yrs.length>1;
+  const pct=(a,k)=>100*a[k]/a.tot, totp=a=>GRI.reduce((t,[k])=>t+pct(a,k),0);
+  const items=originRows().sort(az).map(o=>({o,parts:yearParts(o,yrs,a=>a.tot>0)})).filter(x=>x.parts.length);
+  const mx=Math.max(1,...items.flatMap(x=>x.parts.map(d=>totp(d.a)))); let html='';
+  for(const {o,parts} of items) parts.forEach((d,i)=>{const a=d.a, yt=d.y?` · crop year ${d.y}`:'';
+    const segs=GRI.map(([k,n,c])=>{const p=pct(a,k);return p>0?`<i style="width:${100*p/mx}%;background:var(${c})" data-tip="<b>${esc(o.name)}${yt}</b><br>${n}: ${f1(p)}% of Total Bag Weight<br>${f1(a[k])} lbs of ${f0(a.tot)} lbs${varTip(d.rs)}"></i>`:''}).join('');
+    html+=rowHtml(o.name,d,i,multi,`<div class="stack">${segs}</div>`,`${f1(pct(a,'grn'))} / ${f1(pct(a,'itn'))} / ${f1(pct(a,'rot'))} %`)});
+  $('#pGRI').innerHTML=html?`<div class="row ${multi?'y':''}" style="color:var(--mute);height:18px"><div></div>${multi?'<div></div>':''}<div></div><div class="val">Green / Int. / Rot</div></div>`+html:'<div class="empty">No data for the current slicers.</div>';
+}
+function defectStats(rs){
+  const m=new Map(); let withText=0;
+  for(const r of rs){ if(r.def) withText++; for(const d of r.defs){const e=m.get(d.name)||{name:d.name,n:0,pw:0,w:0,raw:new Set()};e.n++;e.pw+=d.pct*r.tot;e.w+=r.tot;e.raw.add(d.raw);m.set(d.name,e)}}
+  return {withText,list:[...m.values()].map(e=>({...e,avg:e.pw/e.w})).sort((a,b)=>b.n-a.n||a.name.localeCompare(b.name))};
+}
+function renderDefects(){
+  const st=defectStats(vRows), box=$('#pDef');
+  const dy=[...new Set(vRows.filter(r=>r.def).map(r=>r.cy))].sort().join(', ');
+  if(!st.list.length){$('#defDef').textContent='';box.innerHTML='';return}
+  $('#defDef').textContent=`Top Defects text exists only for crop year ${dy}; ${st.withText} of ${vRows.length} samples in view have it. Bar = number of samples listing the defect; label = average % when listed (weighted by lbs). Only the top 5 per sample are recorded, so unlisted does not mean zero.`;
+  const mx=st.list[0].n;
+  box.innerHTML=st.list.map(e=>{const spell=[...e.raw].filter(x=>x!==e.name);
+    const tt=`<b>${esc(e.name)}</b><br>Listed in ${e.n} sample(s)<br>Avg ${f1(e.avg)}% when listed${spell.length?'<br>Spellings merged: '+esc(spell.join(', ')):''}`;
+    return `<div class="row" data-tip="${esc(tt)}" style="grid-template-columns:170px 1fr 120px"><div class="lab">${esc(e.name)}</div><div class="stack"><i style="width:${100*e.n/mx}%;background:var(--s1)"></i></div><div class="val">${e.n} · avg ${f1(e.avg)}%</div></div>`}).join('');
+}
+
+/* ---------- tables ---------- */
+const TABS=[['delivery','Delivery summary'],['origin','Origin summary'],['defects','Defects'],['records','Dockside records (as in file)'],['checks','Data checks'],['corr','Corrections applied'],['excl','Excluded records']];
+function buildTable(tab){
+  if(tab==='corr') return {cols:['ID','Field','Value in the file','Value used','Basis'],rows:(D.corrections||[]).map(c=>[c.id,c.field,c.original,c.used,c.basis]),def:'Changes made to the data by your instruction. Everything else is as stored in the workbook.'};
+  if(tab==='excl') return {cols:['ID','Delivery Date','Grower','Potato Origin','Lot','Reason'],rows:(D.excluded||[]).map(e=>[e.id,e.date,e.grower,e.origin,e.lot,e.reason]),def:'Records in the workbook that are not in this dashboard (all slicers ignored here).'};
+  if(tab==='records') return {cols:D.cols,rows:fRows.map(r=>r.r),def:'Columns as stored in the workbook, except the three "(Do Not Modify)" system columns, Inspector Name and Unusables lbs, which are left out. Values changed by your instruction are listed in Corrections applied. Dates shown as YYYY-MM-DD. Respects the slicers; ignores "Exclude flagged".'};
+  if(tab==='delivery'){
+    const g=groupBy(fRows,r=>r.date+'\u0000'+r.grower+'\u0000'+r.lot+'\u0000'+r.variety), rows=[...g].map(([k,rs])=>{const a=agg(rs),[d,gr,lot,vr]=k.split('\u0000');return [d,rs[0].cy,lot,gr,vr,a.n,a.bags,+a.tot.toFixed(1),a.sg==null?null:+a.sg.toFixed(4),a.origins.size,[...a.origins].sort().join(', ')]}).sort((x,y)=>y[0].localeCompare(x[0])||x[3].localeCompare(y[3])||x[2].localeCompare(y[2]));
+    return {cols:['Delivery Date','Crop Year','Lot','Grower','Variety','Samples','Number of Bags','Total Bag Weight lbs','Specific Gravity (wtd)','Origins','Potato Origins'],rows,def:'One row per delivery date, grower and lot. Crop Year comes from the Lot prefix (MFP-24 = 2024). Specific gravity weighted by Total Bag Weight. Respects the slicers.'};
+  }
+  if(tab==='origin'){
+    const rows=[...groupBy(fRows,'origin')].map(([o,rs])=>{const a=agg(rs),p=(x,d)=>d?+(100*x/d).toFixed(2):null;
+      return [o,[...a.growers].sort().join(', '),[...new Set(rs.map(r=>r.cy))].sort().join(', '),[...new Set(rs.map(r=>r.variety))].join(', '),[...new Set(rs.filter(r=>r.variety==='Mixed').map(r=>r.cy+': '+mixText(r.mix)))].join(' | '),a.n,a.bags,+a.tot.toFixed(1),a.sg==null?null:+a.sg.toFixed(4),p(a.bak,a.size5),p(a.car,a.size5),p(a.nsa,a.size5),p(a.oz2,a.size5),p(a.und,a.size5),p(a.grn,a.tot),p(a.itn,a.tot),p(a.rot,a.tot)]}).sort((x,y)=>x[0].localeCompare(y[0],undefined,{sensitivity:'base'}));
+    return {cols:['Potato Origin','Growers','Crop Years','Variety','Mixed bay contents (share of bay volume)','Samples','Number of Bags','Total Bag Weight lbs','Specific Gravity (wtd)','Bakers % of size lbs','Cartons % of size lbs','Non Size A % of size lbs','4oz 2s % of size lbs','Undersize % of size lbs','Green % of total lbs','Internal % of total lbs','Rot % of total lbs'],rows,def:'All values are weight-weighted (sum of lbs ÷ sum of lbs). Size % use the five size classes as 100%; Green/Internal/Rot use Total Bag Weight. Respects the slicers.'};
+  }
+  if(tab==='defects'){
+    const st=defectStats(fRows);
+    return {cols:['Defect (spellings merged)','Samples listing it','Avg % when listed (wtd by lbs)','Spellings found'],rows:st.list.map(e=>[e.name,e.n,+e.avg.toFixed(2),[...e.raw].sort().join(' | ')]),def:`Parsed from Top Defects text (${st.withText} of ${fRows.length} samples have text). Only the top 5 defects per sample are recorded.`};
+  }
+  const rows=[]; fRows.forEach(r=>{r.flags.forEach(f=>rows.push([r.id,r.date,r.grower,r.origin,f.c,f.d]));if(r.variety==='Unknown')rows.push([r.id,r.date,r.grower,r.origin,'Variety could not be determined (not counted as flagged)','No cellar bay or field match for this origin, crop year and grower']);});
+  return {cols:['ID','Delivery Date','Grower','Potato Origin','Check','Detail'],rows,def:'Records the dashboard flags for review. Nothing is changed or removed. The thresholds are my data-entry checks, not agronomic limits.'};
+}
+function renderTable(){
+  $('#tabs').innerHTML=TABS.map(([k,n])=>`<button class="btn ${S.tab===k?'on':''}" data-t="${k}">${n}</button>`).join('');
+  $('#tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;S.page=0;S.sortCol=null;S.sortDir=1;tblCache=null;renderTable()});
+  if(!tblCache) tblCache=buildTable(S.tab);
+  const T=tblCache; let rows=T.rows.slice();
+  if(S.sortCol!=null){const c=S.sortCol,d=S.sortDir;rows.sort((a,b)=>{const x=a[c],y=b[c];if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;
+    const nx=typeof x==='number'||(x!==''&&isFinite(x)&&typeof x==='string'),ny=typeof y==='number'||(y!==''&&isFinite(y)&&typeof y==='string');
+    return d*((nx&&ny)?(+x-+y):String(x).localeCompare(String(y)))})}
+  const PS=50, pages=Math.max(1,Math.ceil(rows.length/PS)); S.page=Math.min(S.page,pages-1);
+  const num=T.cols.map((c,i)=>T.rows.length&&T.rows.slice(0,50).every(r=>r[i]==null||typeof r[i]==='number'||(typeof r[i]==='string'&&r[i]!==''&&isFinite(r[i]))));
+  $('#tblDef').textContent=T.def;
+  $('#tbl').innerHTML='<thead><tr>'+T.cols.map((c,i)=>`<th class="${num[i]?'num':''}" data-c="${i}">${esc(c)}${S.sortCol===i?(S.sortDir>0?' ▲':' ▼'):''}</th>`).join('')+'</tr></thead><tbody>'+
+    rows.slice(S.page*PS,S.page*PS+PS).map(r=>'<tr>'+r.map((v,i)=>{const long=typeof v==='string'&&(v.includes('\n')||v.length>40);return `<td class="${num[i]?'num':long?'txt':''}">${esc(v==null?'':v)}</td>`}).join('')+'</tr>').join('')+'</tbody>';
+  $('#tbl').querySelectorAll('th').forEach(th=>th.onclick=()=>{const c=+th.dataset.c;if(S.sortCol===c)S.sortDir*=-1;else{S.sortCol=c;S.sortDir=1}renderTable()});
+  $('#tblInfo').textContent=rows.length?`Rows ${S.page*PS+1}–${Math.min(rows.length,S.page*PS+PS)} of ${f0(rows.length)}`:'No rows for the current slicers';
+  $('#prev').disabled=S.page===0; $('#next').disabled=S.page>=pages-1;
+}
+$('#prev').onclick=()=>{S.page--;renderTable()}; $('#next').onclick=()=>{S.page++;renderTable()};
+function toast(msg){const t=$('#toast');t.textContent=msg;t.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',6000)}
+$('#csv').onclick=async()=>{
+  const T=tblCache||buildTable(S.tab), q=v=>{if(v==null)return '';v=String(v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const text='\ufeff'+[T.cols.map(q).join(','),...T.rows.map(r=>r.map(q).join(','))].join('\r\n');
+  const name='dockside_'+S.tab+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  try{
+    const dl=(window.claude&&window.claude.use)?await window.claude.use('downloads'):null;
+    if(dl){await dl.save({filename:name,data:text});toast('Saved '+name);return}
+  }catch(e){ if(e&&e.code==='declined') return; }
+  if(window.claude){ // hosted page without downloads: copy instead
+    try{await navigator.clipboard.writeText(text);toast('Downloads are not available here, so the table was copied as CSV. Paste it into Excel.');return}catch(e){toast('Export is not available in this view.');return}
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));
+  a.download=name; document.body.appendChild(a);a.click();a.remove();
+};
+
+/* ---------- wiring ---------- */
+buildMS($('#msC'),'Crop year',S.crops,()=>optsFor('cy','c'),false,CUR,'Reset to current ('+CUR+')');
+buildMS($('#msV'),'Variety',S.vars,()=>optsFor('variety','v'),false);
+buildMS($('#msG'),'Grower',S.growers,()=>optsFor('grower','g'),false);
+buildMS($('#msO'),'Origin',S.origins,()=>optsFor('origin','o'),true);
+const dF=$('#dFrom'),dT=$('#dTo'); dF.min=dT.min=DMIN; dF.max=dT.max=DMAX;
+dF.onchange=()=>{S.from=dF.value;update()}; dT.onchange=()=>{S.to=dT.value;update()};
+$('#excl').onchange=e=>{S.excl=e.target.checked;update()};
+$('#presets').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  const p=b.dataset.p; if(p==='all'){S.from='';S.to=''}else{const d=new Date(DMAX+'T00:00:00');d.setDate(d.getDate()-(+p-1));S.from=d.toISOString().slice(0,10);S.to=DMAX}
+  dF.value=S.from;dT.value=S.to;update();b.classList.add('on')});
+$('#reset').onclick=()=>{S.crops.clear();S.crops.add(CUR);S.vars.clear();S.growers.clear();S.origins.clear();S.from=S.to='';dF.value=dT.value='';$('#excl').checked=false;S.excl=false;update()};
+
+const un=recs.reduce((n,r)=>n+r.unparsed.length,0);
+$('#notes').innerHTML=[
+ 'Source: the newest "Active Dockside Records" workbook. Values are read as stored except the changes by your instruction listed in Corrections applied and Excluded records: one grower, crop year 2024, Burbank-only bays and one of each identical pair are left out; ID 2298 origin and grower and the specific gravity of ID 2061 were replaced. Flagged records stay in the analysis unless you tick "Exclude flagged records from visuals".',
+ 'One record = one sample row in the file. "Samples" counts records. Each origin chart is a composite of every sample from that origin that passes the slicers (pounds pooled, not an average of averages).',
+ 'Per your instruction, 2026 Transload field years with a blank variety are treated as Norkotah Sand ('+(D.override_n||0)+' field year records). This is an override applied in the build, not data in the Field Years file.',
+ 'Variety is linked, not recorded in the dockside file: the sample\'s Lot gives the crop year and Potato Origin is matched to a cellar bay ("origin - year") or, if it is not a bay, to a field name for that grower. Cellar sections give the variety through their Field Year (the name abbreviation agrees: NORH, NORS, RVLE, RevH, RevS, etc.). A cellar holds one grower\'s potatoes, so only sections for the record\'s grower are used and a mismatch is flagged. A bay with 2+ varieties is labelled Mixed and never counted under a single variety; Teton and Pacific have their own values if they appear in crop year 2025 or 2026; other varieties are Other. Burbank sections are ignored: a bay with Burbank plus Norkotah or Reveille keeps those varieties, and a bay with Burbank and nothing from the Norkotah or Reveille families is excluded. Reveille naming (Sand, Heavy) starts with the 2026 crop; crop year 2025 stays plain Reveille. Potatoes can come straight from a field, so an origin that is not a cellar bay is matched to the Field Years Field name for that crop year and grower; Unknown = no link (2026 Transload origins have a blank variety in Field Years, plus a few unmatched origins). Dockside samples are not tied to a cellar section, so mixed-bay quality cannot be split by variety.',
+ 'Crop year is read from the Lot prefix: MFP-24-#### = 2024, MFP-25 = 2025, MFP-26 = 2026. Lots are not tied to one grower in the file.',
+ 'Averages across an origin are weight-weighted: sum of the lbs in a class ÷ sum of the lbs in the denominator. Specific gravity is weighted by Total Bag Weight lbs.',
+ 'Size distribution: Bakers, Cartons, Non Size A, 4oz 2s and Undersize lbs, each as a % of the sum of those five. Unusables lbs is not shown anywhere on this dashboard. Unaccounted weight = Total Bag Weight minus all nine weight columns (Unusables included), in every record. Your read is that it is partly tare (dirt, rocks, vegetation) and partly grader error; the file has only free text in Tare Statement, not pounds. Records with over 10% unaccounted are flagged but stay in the analysis.',
+ 'Green, Internal and Rot are lbs as a % of Total Bag Weight (not of the size lbs). They are shown separately so you can see why lbs were unusable.',
+ 'The crop year slicer always has at least one year selected and starts on the current crop year ('+CUR+'). Select several to see one value per year in each top box. All charts and tables follow every slicer (crop year, variety, grower, origin, delivery date). Origin charts list origins A–Z.',
+ 'Top Defects are left blank for any crop year with no Top Defects text. They are free text and not specific enough for decisions.',
+ 'Top Defects text is parsed as "n. Name: x%". Only merged spellings: Hollow/Hallow/Hollw Heart, Rhizoctonia/Rhizoconia/Thizoctonia, Bruise/Bruises, Misshapen/Misshape/Shape, Lenticels/Letnicels, Silver Scurf/Scurg, Surface Crack(s), Sprout(s)/Spouts, Black Heart/Heart Black, and case differences. Others (e.g. Pressure, Miss) are left separate.'+(un?` ${un} line(s) could not be read and are listed in Data checks.`:''),
+ 'Data-check thresholds: specific gravity outside '+SG_MIN_OK.toFixed(3)+'–'+SG_MAX_OK.toFixed(3)+', blank origin, over '+LBS_BAG_MAX+' lbs per bag, unaccounted weight over 10% of Total Bag Weight, identical records, unreadable defect lines. These are entry checks, not agronomic limits.',
+ 'The 1.080 line on the specific-gravity chart is the low-SG reference you gave. The grower or processor contract governs where it differs.',
+ 'Origin names are matched to cellar bay and field names with spaces around a slash ignored (for example "A/B" = "A / B"), and one origin is matched to a field with a shorter name by your instruction. Origins are compared as named in the file; the same origin name can appear under more than one grower.'
+].map(t=>`<li>${esc(t)}</li>`).join('');
+update();
+};
+</script>
+<script>
+(function(){
+  const $=s=>document.querySelector(s); document.body.classList.add('locked');
+  const b2u=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)), u2b=u=>btoa(String.fromCharCode(...u));
+  let booted=false;
+  async function open(raw,pack){
+    const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']);
+    const buf=await crypto.subtle.decrypt({name:'AES-GCM',iv:b2u(pack.iv)},key,b2u(pack.ct));
+    const stream=new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return JSON.parse(await new Response(stream).text());
+  }
+  async function derive(pw,pack){
+    const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
+    return new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:b2u(pack.salt),iterations:pack.iter},k,256));
+  }
+  async function fetchPack(){const r=await fetch('data.enc.json',{cache:'no-store'});if(!r.ok)throw new Error('data');return r.json()}
+  function start(D){if(booted)return;booted=true;document.body.classList.remove('locked');window.__boot(D)}
+  async function tryRemembered(pack){
+    try{const k=localStorage.getItem('dd_key');if(!k)return false;const sig=localStorage.getItem('dd_salt');if(sig!==pack.salt){localStorage.removeItem('dd_key');return false}
+      start(await open(b2u(k),pack));return true}catch(e){try{localStorage.removeItem('dd_key')}catch(_){};return false}
+  }
+  fetchPack().then(async pack=>{
+    if(await tryRemembered(pack)) return;
+    $('#lockForm').onsubmit=async ev=>{ev.preventDefault();$('#lockErr').textContent='';$('#unlockBtn').disabled=true;
+      try{const raw=await derive($('#pw').value,pack);const D=await open(raw,pack);
+        if($('#remember').checked){try{localStorage.setItem('dd_key',u2b(raw));localStorage.setItem('dd_salt',pack.salt)}catch(_){}}
+        $('#pw').value='';start(D)}
+      catch(e){$('#lockErr').textContent='That passphrase did not open the data. Check it and try again.'}
+      $('#unlockBtn').disabled=false};
+    $('#pw').focus();
+  }).catch(()=>{$('#lockErr').textContent='The data file could not be loaded. Check your connection and reload.'});
+  document.addEventListener('click',e=>{if(e.target&&e.target.id==='lockBtn'){try{localStorage.removeItem('dd_key');localStorage.removeItem('dd_salt')}catch(_){};location.reload()}});
+  if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+})();
+</script>
+</body>
+</html>
